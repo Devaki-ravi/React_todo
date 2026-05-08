@@ -103,7 +103,7 @@ function App() {
 
       <div className="todo-container">
 
-        <h1> Todo App</h1>
+        <h1> Taskflow - Todo App</h1>
 
 
         <div className="stats">

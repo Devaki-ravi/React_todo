@@ -1,12 +1,28 @@
 import { useEffect, useState } from "react";
+
+import {
+  FaTrash,
+  FaCheck,
+} from "react-icons/fa";
+
 import "./App.css";
 
+
 function App() {
-  const [task, setTask] = useState("");
+
+  const [title, setTitle] = useState("");
+
+  const [category, setCategory] = useState("Personal");
+
+  const [priority, setPriority] = useState("Medium");
+
   const [tasks, setTasks] = useState([]);
 
-  // Fetch todos from backend
+  const [search, setSearch] = useState("");
+
+
   async function fetchTodos() {
+
     const response = await fetch(
       "http://127.0.0.1:8000/todos"
     );
@@ -16,33 +32,36 @@ function App() {
     setTasks(data);
   }
 
-  // Add todo
-  async function addTask() {
-  if (task.trim() === "") return;
 
-  try {
-    const response = await fetch(
-      `http://127.0.0.1:8000/todos?task=${encodeURIComponent(task)}`,
+  async function addTask() {
+
+    if (!title.trim()) return;
+
+    await fetch(
+      "http://127.0.0.1:8000/todos",
       {
         method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          title,
+          category,
+          priority,
+        }),
       }
     );
 
-    if (!response.ok) {
-      throw new Error("Failed to add task");
-    }
-
-    setTask("");
+    setTitle("");
 
     fetchTodos();
-
-  } catch (error) {
-    console.log(error);
   }
-}
 
-  // Delete todo
+
   async function deleteTask(id) {
+
     await fetch(
       `http://127.0.0.1:8000/todos/${id}`,
       {
@@ -53,46 +72,190 @@ function App() {
     fetchTodos();
   }
 
-  // Run on page load
+
+  async function toggleTask(id) {
+
+    await fetch(
+      `http://127.0.0.1:8000/todos/${id}`,
+      {
+        method: "PUT",
+      }
+    );
+
+    fetchTodos();
+  }
+
+
   useEffect(() => {
     fetchTodos();
   }, []);
 
-  return (
-    <div className="container">
-      <h1 className="title">Todo App</h1>
 
-      <div className="input-section">
+  const filteredTasks = tasks.filter((task) =>
+    task.title.toLowerCase().includes(
+      search.toLowerCase()
+    )
+  );
+
+
+  return (
+    <div className="app">
+
+      <div className="todo-container">
+
+        <h1> Todo App</h1>
+
+
+        <div className="stats">
+
+          <div className="card">
+            <h3>Total</h3>
+            <p>{tasks.length}</p>
+          </div>
+
+
+          <div className="card">
+            <h3>Completed</h3>
+            <p>
+              {
+                tasks.filter(
+                  (task) => task.completed
+                ).length
+              }
+            </p>
+          </div>
+
+
+          <div className="card">
+            <h3>Pending</h3>
+            <p>
+              {
+                tasks.filter(
+                  (task) => !task.completed
+                ).length
+              }
+            </p>
+          </div>
+        </div>
+
+
+        <div className="form-section">
+
+          <input
+            type="text"
+            placeholder="Enter task"
+            value={title}
+            onChange={(e) =>
+              setTitle(e.target.value)
+            }
+          />
+
+
+          <select
+            value={category}
+            onChange={(e) =>
+              setCategory(e.target.value)
+            }
+          >
+            <option>Personal</option>
+            <option>Study</option>
+            <option>Work</option>
+            <option>Health</option>
+          </select>
+
+
+          <select
+            value={priority}
+            onChange={(e) =>
+              setPriority(e.target.value)
+            }
+          >
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+
+
+          <button onClick={addTask}>
+            Add Task
+          </button>
+        </div>
+
+
         <input
           type="text"
-          placeholder="Enter task"
-          value={task}
-          onChange={(e) => setTask(e.target.value)}
-          className="input-box"
+          placeholder="Search task"
+          className="search"
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
         />
 
-        <button onClick={addTask} className="add-btn">
-          Add
-        </button>
-      </div>
 
-      <ul className="task-list">
-        {tasks.map((item) => (
-          <li className="task-item" key={item.id}>
-            <span>{item.task}</span>
+        <div className="task-list">
 
-            <div className="button-group">
-              <button
-                onClick={() => deleteTask(item.id)}
+          {
+            filteredTasks.map((task) => (
+
+              <div
+                key={task.id}
+                className={`task-card ${task.priority.toLowerCase()}`}
               >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+
+                <div>
+
+                  <h3
+                    className={
+                      task.completed
+                        ? "completed"
+                        : ""
+                    }
+                  >
+                    {task.title}
+                  </h3>
+
+
+                  <p>
+                    {task.category}
+                  </p>
+
+
+                  <span>
+                    {task.priority}
+                  </span>
+                </div>
+
+
+                <div className="actions">
+
+                  <button
+                    className="complete-btn"
+                    onClick={() =>
+                      toggleTask(task.id)
+                    }
+                  >
+                    <FaCheck />
+                  </button>
+
+
+                  <button
+                    className="delete-btn"
+                    onClick={() =>
+                      deleteTask(task.id)
+                    }
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
     </div>
   );
 }
+
 
 export default App;

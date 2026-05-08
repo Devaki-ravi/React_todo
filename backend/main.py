@@ -1,12 +1,14 @@
 from fastapi import FastAPI
-from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
+
 from database import SessionLocal, engine
 from models import Todo, Base
-from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,26 +17,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create database session
-def get_db():
-    db = SessionLocal()
 
-    try:
-        yield db
-
-    finally:
-        db.close()
-
-
-# Home route
 @app.get("/")
 def home():
     return {"message": "Todo API running"}
 
 
-# Get all todos
 @app.get("/todos")
 def get_todos():
+
     db = SessionLocal()
 
     todos = db.query(Todo).all()
@@ -42,13 +33,15 @@ def get_todos():
     return todos
 
 
-# Create todo
 @app.post("/todos")
-def create_todo(task: str):
+def create_todo(todo: dict):
+
     db = SessionLocal()
 
     new_todo = Todo(
-        task=task,
+        title=todo["title"],
+        category=todo["category"],
+        priority=todo["priority"],
         completed=False
     )
 
@@ -61,9 +54,9 @@ def create_todo(task: str):
     return new_todo
 
 
-# Delete todo
 @app.delete("/todos/{todo_id}")
 def delete_todo(todo_id: int):
+
     db = SessionLocal()
 
     todo = db.query(Todo).filter(
@@ -75,5 +68,24 @@ def delete_todo(todo_id: int):
         db.commit()
 
         return {"message": "Todo deleted"}
+
+    return {"error": "Todo not found"}
+
+
+@app.put("/todos/{todo_id}")
+def toggle_todo(todo_id: int):
+
+    db = SessionLocal()
+
+    todo = db.query(Todo).filter(
+        Todo.id == todo_id
+    ).first()
+
+    if todo:
+        todo.completed = not todo.completed
+
+        db.commit()
+
+        return todo
 
     return {"error": "Todo not found"}

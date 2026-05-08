@@ -1,9 +1,17 @@
 from sqlalchemy import Column, Integer, String, Boolean
+
 from database import Base
+
 
 class Todo(Base):
     __tablename__ = "todos"
 
     id = Column(Integer, primary_key=True, index=True)
-    task = Column(String, nullable=False)
+
+    title = Column(String, nullable=False)
+
+    category = Column(String, default="Personal")
+
+    priority = Column(String, default="Medium")
+
     completed = Column(Boolean, default=False)

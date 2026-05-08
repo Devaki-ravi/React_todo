@@ -1,85 +1,97 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
 function App() {
   const [task, setTask] = useState("");
-
   const [tasks, setTasks] = useState([]);
 
-  function addTask() {
-    if (task.trim() === "") return;
-
-    const newTask = {
-      text: task,
-      completed: false,
-    };
-
-    setTasks([...tasks, newTask]);
-
-    setTask("");
-  }
-
-  function deleteTask(indexToDelete) {
-    const updatedTasks = tasks.filter(
-      (_, index) => index !== indexToDelete
+  // Fetch todos from backend
+  async function fetchTodos() {
+    const response = await fetch(
+      "http://127.0.0.1:8000/todos"
     );
 
-    setTasks(updatedTasks);
+    const data = await response.json();
+
+    setTasks(data);
   }
 
-  function toggleComplete(indexToToggle) {
-    const updatedTasks = tasks.map((item, index) => {
-      if (index === indexToToggle) {
-        return {
-          ...item,
-          completed: !item.completed,
-        };
+  // Add todo
+  async function addTask() {
+  if (task.trim() === "") return;
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/todos?task=${encodeURIComponent(task)}`,
+      {
+        method: "POST",
       }
+    );
 
-      return item;
-    });
+    if (!response.ok) {
+      throw new Error("Failed to add task");
+    }
 
-    setTasks(updatedTasks);
+    setTask("");
+
+    fetchTodos();
+
+  } catch (error) {
+    console.log(error);
   }
+}
+
+  // Delete todo
+  async function deleteTask(id) {
+    await fetch(
+      `http://127.0.0.1:8000/todos/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    fetchTodos();
+  }
+
+  // Run on page load
+  useEffect(() => {
+    fetchTodos();
+  }, []);
 
   return (
     <div className="container">
-  <h1 className="title">Todo App</h1>
+      <h1 className="title">Todo App</h1>
 
-  <div className="input-section">
-    <input
-      type="text"
-      placeholder="Enter task"
-      value={task}
-      onChange={(e) => setTask(e.target.value)}
-      className="input-box"
-    />
+      <div className="input-section">
+        <input
+          type="text"
+          placeholder="Enter task"
+          value={task}
+          onChange={(e) => setTask(e.target.value)}
+          className="input-box"
+        />
 
-    <button onClick={addTask} className="add-btn">
-      Add
-    </button>
-  </div>
+        <button onClick={addTask} className="add-btn">
+          Add
+        </button>
+      </div>
 
-  <ul className="task-list">
-    {tasks.map((item, index) => (
-      <li className="task-item" key={index}>
-        <span className={item.completed ? "completed" : ""}>
-          {item.text}
-        </span>
+      <ul className="task-list">
+        {tasks.map((item) => (
+          <li className="task-item" key={item.id}>
+            <span>{item.task}</span>
 
-        <div className="button-group">
-          <button onClick={() => toggleComplete(index)}>
-            {item.completed ? "Undo" : "Complete"}
-          </button>
-
-          <button onClick={() => deleteTask(index)}>
-            Delete
-          </button>
-        </div>
-      </li>
-    ))}
-  </ul>
-</div>
+            <div className="button-group">
+              <button
+                onClick={() => deleteTask(item.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
